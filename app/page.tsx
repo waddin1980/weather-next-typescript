@@ -11,24 +11,35 @@ const Home = () => {
   const [location, setLocation] = useState('');
   const [error, setError] = useState('');
 
-  // TODO put api key in .env
-  const url = `http://api.weatherapi.com/v1/forecast.json?key=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&q=${location}&days=7&aqi=yes&alerts=yes`;
-
   const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
 
       try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error();
-        }
+        const response = await fetch(
+          `/api/weather?q=${encodeURIComponent(location)}`,
+        );
         const data = await response.json();
+
+        if (!response.ok) {
+          const message =
+            typeof data.error === 'string'
+              ? data.error
+              : data.error?.message;
+          throw new Error(
+            typeof message === 'string' ? message : 'Weather request failed',
+          );
+        }
+
         setData(data);
         setLocation('');
         setError('');
-      } catch (error) {
-        setError('Location not found');
+      } catch (requestError) {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Weather request failed',
+        );
         setData({});
       }
     }
@@ -48,8 +59,8 @@ const Home = () => {
   } else if (error !== '') {
     content = (
       <div className="text-white text-center h-screen mt-[5rem]">
-        <p className="text-3xl">City not found</p>
-        <p>Enter a valid city</p>
+        <p className="text-3xl">{error}</p>
+        <p>Check the location and try again</p>
       </div>
     );
   } else {
